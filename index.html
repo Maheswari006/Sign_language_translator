@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sign Language Translator</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<h2>Sign Language Translator</h2>
+
+<video id="video" width="400" autoplay></video>
+<br><br>
+
+<button onclick="capture()">Predict</button>
+<button onclick="clearText()">Clear</button>
+<button onclick="speakText()">Speak</button>
+
+
+<h3>Prediction: <span id="prediction"></span></h3>
+<h3>Text: <span id="text"></span></h3>
+
+<script>
+
+const video = document.getElementById("video")
+
+navigator.mediaDevices.getUserMedia({video:true})
+.then(stream => video.srcObject = stream)
+
+function speakText(text){
+
+const speech = new SpeechSynthesisUtterance()
+
+speech.text = text
+speech.lang = "en-US"
+speech.volume = 1
+speech.rate = 1
+speech.pitch = 1
+
+window.speechSynthesis.speak(speech)
+
+}
+
+function capture(){
+
+    const canvas = document.createElement("canvas")
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+
+    const ctx = canvas.getContext("2d")
+    ctx.drawImage(video,0,0)
+
+    const data = canvas.toDataURL("image/jpeg")
+
+    fetch("/predict",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({image:data})
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        document.getElementById("prediction").innerText = data.prediction
+        document.getElementById("text").innerText = data.text
+
+        speakText(data.prediction)
+    })
+}
+
+function clearText(){
+
+fetch("/clear",{method:"POST"})
+.then(res=>res.json())
+.then(data=>{
+document.getElementById("text").innerText = ""
+})
+
+}
+
+</script>
+
+</body>
+</html>
